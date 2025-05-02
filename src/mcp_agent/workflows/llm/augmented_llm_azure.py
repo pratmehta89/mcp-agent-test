@@ -66,7 +66,7 @@ class AzureAugmentedLLM(AugmentedLLM[MessageParam, ResponseMessage]):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, type_converter=MCPAzureTypeConverter, **kwargs)
 
-        self.provider = "Azure"
+        self.provider = "Microsoft Azure"
         # Initialize logger with name if available
         self.logger = get_logger(f"{__name__}.{self.name}" if self.name else __name__)
 
@@ -125,9 +125,7 @@ class AzureAugmentedLLM(AugmentedLLM[MessageParam, ResponseMessage]):
 
         system_prompt = self.instruction or params.systemPrompt
         if system_prompt and len(messages) == 0:
-            messages.append(
-                SystemMessage(content=system_prompt)
-            )
+            messages.append(SystemMessage(content=system_prompt))
 
         if isinstance(message, str):
             messages.append(UserMessage(content=message))

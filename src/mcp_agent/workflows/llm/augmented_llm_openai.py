@@ -58,25 +58,29 @@ class OpenAIAugmentedLLM(
             speedPriority=0.4,
             intelligencePriority=0.3,
         )
+
         # Get default model from config if available
-        chosen_model = "gpt-4o"  # Fallback default
+        if "default_model" in kwargs:
+            default_model = kwargs["default_model"]
+        else:
+            default_model = "gpt-4o"  # Fallback default
 
         self._reasoning_effort = "medium"
         if self.context and self.context.config and self.context.config.openai:
             if hasattr(self.context.config.openai, "default_model"):
-                chosen_model = self.context.config.openai.default_model
+                default_model = self.context.config.openai.default_model
             if hasattr(self.context.config.openai, "reasoning_effort"):
                 self._reasoning_effort = self.context.config.openai.reasoning_effort
 
-        self._reasoning = lambda model : model.startswith(("o1","o3","o4"))
+        self._reasoning = lambda model: model.startswith(("o1", "o3", "o4"))
 
-        if self._reasoning(chosen_model):
+        if self._reasoning(default_model):
             self.logger.info(
-                f"Using reasoning model '{chosen_model}' with '{self._reasoning_effort}' reasoning effort"
+                f"Using reasoning model '{default_model}' with '{self._reasoning_effort}' reasoning effort"
             )
 
         self.default_request_params = self.default_request_params or RequestParams(
-            model=chosen_model,
+            model=default_model,
             modelPreferences=self.model_preferences,
             maxTokens=4096,
             systemPrompt=self.instruction,
@@ -165,10 +169,8 @@ class OpenAIAugmentedLLM(
             if self._reasoning(model):
                 arguments = {
                     **arguments,
-                    
                     # DEPRECATED: https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_tokens
                     # "max_tokens": params.maxTokens,
-                    
                     "max_completion_tokens": params.maxTokens,
                     "reasoning_effort": self._reasoning_effort,
                 }
@@ -310,6 +312,8 @@ class OpenAIAugmentedLLM(
         # processing first and then pass the final response through Instructor
         import instructor
 
+        from instructor.exceptions import InstructorRetryException
+
         response = await self.generate_str(
             message=message,
             request_params=request_params,
@@ -321,20 +325,37 @@ class OpenAIAugmentedLLM(
                 api_key=self.context.config.openai.api_key,
                 base_url=self.context.config.openai.base_url,
             ),
-            mode=instructor.Mode.TOOLS_STRICT,
         )
 
         params = self.get_request_params(request_params)
         model = await self.select_model(params)
 
-        # Extract structured data from natural language
-        structured_response = client.chat.completions.create(
-            model=model or "gpt-4o",
-            response_model=response_model,
-            messages=[
-                {"role": "user", "content": response},
-            ],
-        )
+        try:
+            # Extract structured data from natural language
+            structured_response = client.chat.completions.create(
+                model=model or "gpt-4o",
+                response_model=response_model,
+                messages=[
+                    {"role": "user", "content": response},
+                ],
+            )
+        except InstructorRetryException:
+            # Retry the request with JSON mode
+            client = instructor.from_openai(
+                OpenAI(
+                    api_key=self.context.config.openai.api_key,
+                    base_url=self.context.config.openai.base_url,
+                ),
+                mode=instructor.Mode.JSON,
+            )
+
+            structured_response = client.chat.completions.create(
+                model=model or "gpt-4o",
+                response_model=response_model,
+                messages=[
+                    {"role": "user", "content": response},
+                ],
+            )
 
         return structured_response
 

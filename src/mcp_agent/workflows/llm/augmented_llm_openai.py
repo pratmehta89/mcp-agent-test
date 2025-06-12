@@ -210,6 +210,12 @@ class OpenAIAugmentedLLM(
             if model:
                 span.set_attribute(GEN_AI_REQUEST_MODEL, model)
 
+            # prefer user from the request params,
+            # otherwise use the default from the config
+            user = params.user or getattr(self.context.config.openai, "user", None)
+            if self.context.tracing_enabled and user:
+                span.set_attribute("user", user)
+
             total_input_tokens = 0
             total_output_tokens = 0
             finish_reasons = []
@@ -221,12 +227,12 @@ class OpenAIAugmentedLLM(
                     "tools": available_tools,
                 }
 
+                if user:
+                    arguments["user"] = user
+
                 if params.stopSequences is not None:
                     arguments["stop"] = params.stopSequences
-
-                user_value = getattr(self.context.config.openai, "user", None)
-                if user_value:
-                    arguments["user"] = user_value
+                
                 if self._reasoning(model):
                     arguments = {
                         **arguments,
@@ -893,6 +899,9 @@ class OpenAICompletionTasks:
                 http_client=request.config.http_client
                 if hasattr(request.config, "http_client")
                 else None,
+                default_headers=request.config.default_headers
+                if hasattr(request.config, "default_headers")
+                else None,
             ),
             mode=instructor.Mode.TOOLS_STRICT,
         )
@@ -914,6 +923,9 @@ class OpenAICompletionTasks:
                     base_url=request.config.base_url,
                     http_client=request.config.http_client
                     if hasattr(request.config, "http_client")
+                    else None,
+                    default_headers=request.config.default_headers
+                    if hasattr(request.config, "default_headers")
                     else None,
                 ),
                 mode=instructor.Mode.JSON,

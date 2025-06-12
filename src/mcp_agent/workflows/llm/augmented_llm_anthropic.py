@@ -478,7 +478,7 @@ class AnthropicAugmentedLLM(AugmentedLLM[MessageParam, Message]):
 
         return str(message)
 
-    def message_str(self, message: Message) -> str:
+    def message_str(self, message: Message, content_only: bool = False) -> str:
         """Convert an output message to a string representation."""
         content = message.content
 
@@ -494,6 +494,9 @@ class AnthropicAugmentedLLM(AugmentedLLM[MessageParam, Message]):
                 return "\n".join(final_text)
             else:
                 return str(content)
+        elif content_only:
+            # If content_only is True, we return an empty string if there's no content
+            return ""
 
         return str(message)
 

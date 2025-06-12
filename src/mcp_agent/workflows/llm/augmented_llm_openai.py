@@ -554,11 +554,16 @@ class OpenAIAugmentedLLM(
 
         return str(message)
 
-    def message_str(self, message: ChatCompletionMessage) -> str:
+    def message_str(
+        self, message: ChatCompletionMessage, content_only: bool = False
+    ) -> str:
         """Convert an output message to a string representation."""
         content = message.content
         if content:
             return content
+        elif content_only:
+            # If content_only is True, return empty string if no content
+            return ""
 
         return str(message)
 

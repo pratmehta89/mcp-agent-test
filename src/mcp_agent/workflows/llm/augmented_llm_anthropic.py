@@ -159,14 +159,14 @@ class AnthropicAugmentedLLM(AugmentedLLM[MessageParam, Message]):
                 AnthropicConverter.convert_mixed_messages_to_anthropic(message)
             )
 
-            response = await self.agent.list_tools()
+            list_tools_result = await self.agent.list_tools()
             available_tools: List[ToolParam] = [
                 {
                     "name": tool.name,
                     "description": tool.description,
                     "input_schema": tool.inputSchema,
                 }
-                for tool in response.tools
+                for tool in list_tools_result.tools
             ]
 
             responses: List[Message] = []
@@ -182,7 +182,8 @@ class AnthropicAugmentedLLM(AugmentedLLM[MessageParam, Message]):
             for i in range(params.max_iterations):
                 if (
                     i == params.max_iterations - 1
-                    and response.stop_reason == "tool_use"
+                    and responses
+                    and responses[-1].stop_reason == "tool_use"
                 ):
                     final_prompt_message = MessageParam(
                         role="user",

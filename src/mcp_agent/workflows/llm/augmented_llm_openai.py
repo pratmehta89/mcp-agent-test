@@ -232,7 +232,7 @@ class OpenAIAugmentedLLM(
 
                 if params.stopSequences is not None:
                     arguments["stop"] = params.stopSequences
-                
+
                 if self._reasoning(model):
                     arguments = {
                         **arguments,

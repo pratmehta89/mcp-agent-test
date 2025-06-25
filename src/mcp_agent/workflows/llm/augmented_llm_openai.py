@@ -459,8 +459,8 @@ class OpenAIAugmentedLLM(
                     serialized_response_model=serialized_response_model,
                     response_str=response,
                     model=model,
-                    user=params.user or getattr(self.context.config.openai,
-                                                "user", None),
+                    user=params.user
+                    or getattr(self.context.config.openai, "user", None),
                 ),
             )
             # TODO: saqadri (MAC) - fix request_structured_completion_task to return ensure_serializable

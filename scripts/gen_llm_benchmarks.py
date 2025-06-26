@@ -346,7 +346,7 @@ def main(
         resolve_path=True,
     ),
     output_file: Path = typer.Argument(
-        "llm_benchmarks.json",
+        "src/mcp_agent/data/artificial_analysis_llm_benchmarks.json",
         help="Path to the output JSON file",
         resolve_path=True,
     ),
